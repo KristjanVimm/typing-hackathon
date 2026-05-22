@@ -5,7 +5,7 @@ import { fetchRandomWords, submitResult } from '../services/api.js';
 import Keyboard from './Keyboard.jsx';
 import Results from './Results.jsx';
 
-const WORD_COUNT_BY_DIFFICULTY = { easy: 10, medium: 25, hard: 40 };
+const WORD_COUNT_BY_DIFFICULTY = { easy: 5, medium: 10, hard: 15 };
 
 function buildResultPayload({ text, typed, keyStats, wpm, accuracy, elapsed }) {
   const totalCharacters     = Object.values(keyStats).reduce((sum, s) => sum + s.a, 0);
@@ -104,6 +104,11 @@ function TypingTest({
   }, [finished]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleKeyDown = useCallback((e) => {
+    if (finished && e.key === 'Enter') {
+      e.preventDefault();
+      setRefreshKey(k => k + 1);
+      return;
+    }
     if (e.key === 'Tab') { e.preventDefault(); return; }
     // Prevent spacebar page-scroll and backspace browser-back
     if (e.key === ' ' || e.key === 'Backspace') e.preventDefault();
@@ -112,7 +117,7 @@ function TypingTest({
       setPressedKey(e.key);
       setTimeout(() => setPressedKey(null), 90);
     }
-  }, [handleKey]);
+  }, [handleKey, finished]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
