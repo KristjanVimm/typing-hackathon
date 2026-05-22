@@ -105,7 +105,8 @@ function TypingTest({
 
   const handleKeyDown = useCallback((e) => {
     if (e.key === 'Tab') { e.preventDefault(); return; }
-    if (e.key === 'Backspace') e.preventDefault();
+    // Prevent spacebar page-scroll and backspace browser-back
+    if (e.key === ' ' || e.key === 'Backspace') e.preventDefault();
     handleKey(e.key);
     if (e.key.length === 1 || e.key === 'Backspace') {
       setPressedKey(e.key);
@@ -140,13 +141,13 @@ function TypingTest({
           </div>
         </div>
         <div className="header-controls">
-          <button className="ctrl-btn" onClick={onCycleFont} title="Change font">
+          <button className="ctrl-btn" onClick={onCycleFont} onMouseDown={e => e.preventDefault()} title="Change font">
             Aa
           </button>
-          <button className="ctrl-btn" onClick={onToggleTheme} title="Toggle theme">
+          <button className="ctrl-btn" onClick={onToggleTheme} onMouseDown={e => e.preventDefault()} title="Toggle theme">
             {theme === 'dark' ? '☀️' : '🌙'}
           </button>
-          <button className="ctrl-btn" onClick={onToggleFullscreen} title="Fullscreen">
+          <button className="ctrl-btn" onClick={onToggleFullscreen} onMouseDown={e => e.preventDefault()} title="Fullscreen">
             ⛶
           </button>
         </div>
@@ -165,7 +166,7 @@ function TypingTest({
           <span className="toolbar-mode">
             {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} · {wordList}
           </span>
-          <button className="btn btn-ghost" onClick={() => setRefreshKey(k => k + 1)}>
+          <button className="btn btn-ghost" onClick={() => setRefreshKey(k => k + 1)} onMouseDown={e => e.preventDefault()}>
             ↺ New text
           </button>
         </div>
