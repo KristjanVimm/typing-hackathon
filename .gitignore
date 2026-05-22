@@ -1,2 +1,6 @@
 .claude/
 .idea/
+
+# Spring Boot H2 file database
+backend/data/
+
