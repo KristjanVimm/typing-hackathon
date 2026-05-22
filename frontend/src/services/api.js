@@ -1,7 +1,10 @@
 const API_BASE = '/api';
 
-export async function fetchRandomWords(count = 25) {
-  const res = await fetch(`${API_BASE}/typing/words?count=${count}`);
+export async function fetchRandomWords(count = 25, { minLength, maxLength } = {}) {
+  const params = new URLSearchParams({ count: String(count) });
+  if (minLength != null) params.set('minLength', String(minLength));
+  if (maxLength != null) params.set('maxLength', String(maxLength));
+  const res = await fetch(`${API_BASE}/typing/words?${params}`);
   if (!res.ok) throw new Error(`words ${res.status}`);
   return res.text();
 }

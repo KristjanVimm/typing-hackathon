@@ -6,6 +6,11 @@ import Keyboard from './Keyboard.jsx';
 import Results from './Results.jsx';
 
 const WORD_COUNT_BY_DIFFICULTY = { easy: 5, medium: 10, hard: 15 };
+const LENGTH_BY_DIFFICULTY = {
+  easy:   { minLength: 2, maxLength: 4 },
+  medium: { minLength: 5, maxLength: 7 },
+  hard:   { minLength: 8 },
+};
 
 function buildResultPayload({ text, typed, keyStats, wpm, accuracy, elapsed }) {
   const totalCharacters     = Object.values(keyStats).reduce((sum, s) => sum + s.a, 0);
@@ -77,7 +82,8 @@ function TypingTest({
     (async () => {
       try {
         const count = WORD_COUNT_BY_DIFFICULTY[difficulty] ?? 25;
-        const t = await fetchRandomWords(count);
+        const lengthRange = LENGTH_BY_DIFFICULTY[difficulty] ?? {};
+        const t = await fetchRandomWords(count, lengthRange);
         if (!cancelled && t?.trim()) {
           setText(t.trim());
         } else {

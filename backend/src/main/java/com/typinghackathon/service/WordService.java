@@ -42,17 +42,39 @@ public class WordService {
     }
 
     public String randomWords(int count) {
+        return randomWords(count, null, null);
+    }
+
+    public String randomWords(int count, Integer minLength, Integer maxLength) {
         if (count < MIN_COUNT || count > MAX_COUNT) {
             throw new IllegalArgumentException(
                     "count must be between " + MIN_COUNT + " and " + MAX_COUNT + " (got " + count + ")");
         }
+        if (minLength != null && maxLength != null && minLength > maxLength) {
+            throw new IllegalArgumentException(
+                    "minLength (" + minLength + ") must not exceed maxLength (" + maxLength + ")");
+        }
+        List<String> pool = filterByLength(minLength, maxLength);
+        if (pool.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "no words match length range [" + minLength + ".." + maxLength + "]");
+        }
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
         StringBuilder sb = new StringBuilder(count * 8);
-        int size = words.size();
+        int size = pool.size();
         for (int i = 0; i < count; i++) {
             if (i > 0) sb.append(' ');
-            sb.append(words.get(rnd.nextInt(size)));
+            sb.append(pool.get(rnd.nextInt(size)));
         }
         return sb.toString();
+    }
+
+    private List<String> filterByLength(Integer minLength, Integer maxLength) {
+        if (minLength == null && maxLength == null) return words;
+        int lo = minLength == null ? 0 : minLength;
+        int hi = maxLength == null ? Integer.MAX_VALUE : maxLength;
+        return words.stream()
+                .filter(w -> w.length() >= lo && w.length() <= hi)
+                .collect(Collectors.toUnmodifiableList());
     }
 }

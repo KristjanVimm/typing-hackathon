@@ -36,9 +36,12 @@ public class TypingController {
     }
 
     @GetMapping(value = "/words", produces = MediaType.TEXT_PLAIN_VALUE)
-    public String getRandomWords(@RequestParam(defaultValue = "25") int count) {
+    public String getRandomWords(
+            @RequestParam(defaultValue = "25") int count,
+            @RequestParam(required = false) Integer minLength,
+            @RequestParam(required = false) Integer maxLength) {
         try {
-            return wordService.randomWords(count);
+            return wordService.randomWords(count, minLength, maxLength);
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
