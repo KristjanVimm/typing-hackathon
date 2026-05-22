@@ -1,9 +1,48 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTypingTest } from '../hooks/useTypingTest.js';
 import { generateText } from '../utils/textGenerator.js';
-import { fetchPracticeText, submitResult } from '../services/api.js';
+import { fetchRandomWords, submitResult } from '../services/api.js';
 import Keyboard from './Keyboard.jsx';
 import Results from './Results.jsx';
+
+const WORD_COUNT_BY_DIFFICULTY = { easy: 10, medium: 25, hard: 40 };
+
+function buildResultPayload({ text, typed, keyStats, wpm, accuracy, elapsed }) {
+  const totalCharacters     = Object.values(keyStats).reduce((sum, s) => sum + s.a, 0);
+  const correctCharacters   = Object.values(keyStats).reduce((sum, s) => sum + s.c, 0);
+  const incorrectCharacters = totalCharacters - correctCharacters;
+  const durationMs          = elapsed * 1000;
+  const mins                = elapsed / 60;
+  const rawWpm = mins > 0 ? Math.round((totalCharacters / 5) / mins) : 0;
+
+  const words = text.split(/\s+/).filter(Boolean);
+  let cursor = 0;
+  let correctWords = 0;
+  for (const w of words) {
+    const start = text.indexOf(w, cursor);
+    const end = start + w.length;
+    cursor = end;
+    let ok = true;
+    for (let i = start; i < end; i++) {
+      if (typed[i] !== 'ok') { ok = false; break; }
+    }
+    if (ok) correctWords++;
+  }
+  const totalWords     = words.length;
+  const incorrectWords = totalWords - correctWords;
+
+  const keyErrors = Object.entries(keyStats)
+    .filter(([ch, s]) => ch.trim().length > 0 && s.a - s.c > 0)
+    .map(([ch, s]) => ({ expectedChar: ch, typedChar: null, count: s.a - s.c }));
+
+  return {
+    wpm, rawWpm, accuracy, durationMs,
+    totalCharacters, correctCharacters, incorrectCharacters,
+    totalWords, correctWords, incorrectWords,
+    wordAttempts: [],
+    keyErrors,
+  };
+}
 
 function formatTime(secs) {
   const m = Math.floor(secs / 60);
@@ -14,7 +53,7 @@ function formatTime(secs) {
 function TypingTest({
   difficulty = 'medium', wordList = 'common', font = 'mono',
   theme = 'dark', isFullscreen = false,
-  onResult, onToggleTheme, onCycleFont, onToggleFullscreen,
+  onResult, onResultSaved, onToggleTheme, onCycleFont, onToggleFullscreen,
 }) {
   const [text, setText]           = useState('');
   const [loading, setLoading]     = useState(true);
@@ -37,7 +76,8 @@ function TypingTest({
 
     (async () => {
       try {
-        const t = await fetchPracticeText();
+        const count = WORD_COUNT_BY_DIFFICULTY[difficulty] ?? 25;
+        const t = await fetchRandomWords(count);
         if (!cancelled && t?.trim()) {
           setText(t.trim());
         } else {
@@ -56,8 +96,10 @@ function TypingTest({
   useEffect(() => {
     if (!finished) return;
     setShowResults(true);
-    onResult?.({ wpm, accuracy, difficulty });
-    submitResult({ wpm, accuracy, elapsed, keyStats, weakKeys })
+    const payload = buildResultPayload({ text, typed, keyStats, wpm, accuracy, elapsed });
+    onResult?.({ wpm, accuracy, elapsed, keyStats, payload });
+    submitResult(payload)
+      .then(saved => onResultSaved?.(saved))
       .catch(() => {});
   }, [finished]); // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Sidebar from './components/Sidebar.jsx';
 import TypingTest from './components/TypingTest.jsx';
 import ProgressCharts from './components/ProgressCharts.jsx';
+import { fetchStats } from './services/api.js';
 import './App.css';
 
 const FONTS = ['mono', 'sans', 'serif'];
@@ -14,6 +15,13 @@ function App() {
   const [fontIndex, setFontIndex]   = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [sessionHistory, setSessionHistory] = useState([]);
+  const [lifetimeStats, setLifetimeStats] = useState(null);
+
+  const refreshStats = useCallback(() => {
+    fetchStats().then(setLifetimeStats).catch(() => {});
+  }, []);
+
+  useEffect(() => { refreshStats(); }, [refreshStats]);
 
   // Apply theme to root so CSS variables cascade everywhere
   useEffect(() => {
@@ -38,6 +46,8 @@ function App() {
     if (d !== undefined) setDifficulty(d);
     if (w !== undefined) setWordList(w);
   };
+
+  const handleResultSaved = () => refreshStats();
 
   const handleResult = ({ wpm, accuracy, elapsed, keyStats }) => {
     const mode = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
@@ -81,14 +91,55 @@ function App() {
           theme={theme}
           isFullscreen={isFullscreen}
           onResult={handleResult}
+          onResultSaved={handleResultSaved}
           onToggleTheme={toggleTheme}
           onCycleFont={cycleFont}
           onToggleFullscreen={toggleFullscreen}
         />
         <div className="charts-section">
+          <LifetimeStats stats={lifetimeStats} />
           <ProgressCharts sessionHistory={sessionHistory} />
         </div>
       </div>
+    </div>
+  );
+}
+
+function LifetimeStats({ stats }) {
+  if (!stats || stats.totalSessions === 0) return null;
+  const minutes = Math.round((stats.totalDurationMs || 0) / 60000);
+  const items = [
+    { label: 'Sessions',     value: stats.totalSessions },
+    { label: 'Best WPM',     value: Math.round(stats.bestWpm) },
+    { label: 'Avg WPM',      value: Math.round(stats.averageWpm) },
+    { label: 'Avg accuracy', value: `${stats.averageAccuracy.toFixed(1)}%` },
+    { label: 'Total time',   value: `${minutes}m` },
+  ];
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+      gap: 10,
+      marginBottom: '1.25rem',
+      padding: '1rem 1.25rem',
+      background: 'var(--color-background-primary)',
+      border: '0.5px solid var(--color-border-tertiary)',
+      borderRadius: 12,
+    }}>
+      {items.map(it => (
+        <div key={it.label} style={{
+          background: 'var(--color-background-secondary)',
+          borderRadius: 8,
+          padding: '12px 14px',
+        }}>
+          <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>
+            {it.label}
+          </div>
+          <div style={{ fontSize: 22, fontWeight: 500, color: 'var(--color-text-primary)' }}>
+            {it.value}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
